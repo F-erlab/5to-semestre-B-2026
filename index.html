@@ -97,6 +97,9 @@ summary{cursor:pointer;font-weight:600}
 .cell .fer{font-size:9.5px;color:var(--warn);font-weight:700;text-transform:uppercase}
 .ex{font-size:10.5px;font-weight:700;line-height:1.2;border:1.5px solid var(--c);border-radius:5px;padding:1px 4px;overflow-wrap:anywhere}
 .slot{font-size:10.5px;font-weight:700;color:#fff;background:var(--c);border-radius:4px;padding:1px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.theme-btn{font:inherit;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.theme-btn:hover{background:var(--soft)}
 @media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){
   .strip{grid-template-columns:minmax(0,1fr)}
@@ -113,7 +116,8 @@ summary{cursor:pointer;font-weight:600}
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">5to B · Medicina</div>
+    <div class="top"><div class="eyebrow">5to B · Medicina</div>
+      <button type="button" id="themeBtn" class="theme-btn" aria-label="Cambiar a tema oscuro" title="Cambiar tema"><span id="themeIco" aria-hidden="true">☾</span> <span id="themeTxt">Oscuro</span></button></div>
     <h1>Plan de estudio hasta febrero</h1>
     <p class="sub">Sale del calendario de 5to B en Canva. Cada día tiene dos <b>bloques</b> de estudio (media jornada, unas 3–4 h cada uno). Mientras hay clases, entre semana solo cuenta el tiempo libre que te deja el horario. Los días justo antes de cada examen van para esa materia, y lo que no entra se adelanta. Así queda la fecha en que tenés que empezar cada materia.</p>
   </header>
@@ -358,8 +362,22 @@ function render(){
     <select id="cls-${dw}" data-cls="${dw}">${[0,1,2].map(v=>`<option value="${v}" ${+S.cls[dw]===v?'selected':''}>${['Sin estudio','1 bloque','2 bloques'][v]}</option>`).join('')}</select></label>`).join('');
 }
 
+// Tema claro / oscuro
+const mq=window.matchMedia('(prefers-color-scheme: dark)');
+const curTheme=()=>document.documentElement.getAttribute('data-theme')||(mq.matches?'dark':'light');
+function paintThemeBtn(){
+  const dark=curTheme()==='dark';
+  document.getElementById('themeIco').textContent=dark?'☀':'☾';
+  document.getElementById('themeTxt').textContent=dark?'Claro':'Oscuro';
+  document.getElementById('themeBtn').setAttribute('aria-label',dark?'Cambiar a tema claro':'Cambiar a tema oscuro');
+}
+try{const t=localStorage.getItem('plan5toB.theme'); if(t==='dark'||t==='light') document.documentElement.setAttribute('data-theme',t);}catch(e){}
+paintThemeBtn();
+mq.addEventListener&&mq.addEventListener('change',paintThemeBtn);
+
 document.addEventListener('click',ev=>{
   const b=ev.target.closest('button'); if(!b) return;
+  if(b.id==='themeBtn'){const t=curTheme()==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); try{localStorage.setItem('plan5toB.theme',t);}catch(e){} paintThemeBtn(); return;}
   if(b.dataset.id){const e=EV.find(x=>x.id===b.dataset.id); S.bl[e.id]=Math.max(0,Math.min(40,blocks(e)+(+b.dataset.d))); save(); render();}
   else if(b.dataset.grp!=null){const g=GROUPS[+b.dataset.grp]; EV.filter(e=>g.k.includes(e.k)).forEach(e=>S.on[e.id]=b.dataset.v==='1'); save(); render();}
   else if(b.id==='reset'){S=defS(); save(); render();}
