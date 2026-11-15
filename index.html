@@ -100,11 +100,45 @@ summary{cursor:pointer;font-weight:600}
 .top{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .theme-btn{font:inherit;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
 .theme-btn:hover{background:var(--soft)}
+.today-card{background:var(--surface);border:2px solid var(--accent);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.today-card h3{font-size:18px}
+.blk{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;border-left:5px solid var(--c)}
+.blk input{width:20px;height:20px;accent-color:var(--accent);flex:none;margin-top:1px}
+.blk .bt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.blk .bt b{font-weight:600}
+.blk .bt span{font-size:13px;color:var(--muted)}
+.blk.done{opacity:.6}
+.blk.done b{text-decoration:line-through}
+.tag{font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--soft);color:var(--ink);white-space:nowrap}
+.tag.ex{border:1.5px solid var(--c);background:transparent}
+.week{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.wrow{display:grid;grid-template-columns:118px minmax(0,1fr);gap:14px;padding:10px 16px;border-top:1px solid var(--line);align-items:center}
+.wrow:first-child{border-top:0}
+.wrow .wd{font-weight:600;font-size:14px}
+.wrow .wi{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}
+.wrow .wi .muted{color:var(--muted)}
+.bar{height:6px;border-radius:999px;background:var(--soft);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);border-radius:999px}
+.prog{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px;max-width:260px}
+.row details.tp{grid-column:1/-1;border:0;padding:0;background:none}
+.row details.tp summary{font-size:13px;font-weight:600;color:var(--accent)}
+.tp .tl{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.tp .ti{display:flex;align-items:center;gap:8px;font-size:13.5px}
+.tp .ti label{display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer;overflow-wrap:anywhere}
+.tp .ti input{width:16px;height:16px;accent-color:var(--accent);flex:none}
+.tp .ti.ok label{color:var(--muted);text-decoration:line-through}
+.tp .ti button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px}
+.tp textarea{font:inherit;font-size:13.5px;width:100%;min-height:64px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);resize:vertical}
+.btn{font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;align-self:flex-start}
+.btn:hover{background:var(--soft)}
+.slot.rev{background:transparent;color:var(--ink);border:1.5px dashed var(--c);padding:0 4px}
+.slot.did{opacity:.55}
 @media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){
   .strip{grid-template-columns:minmax(0,1fr)}
   .row{grid-template-columns:minmax(0,1fr) auto;row-gap:6px}
   .row .start{grid-column:1/-1;display:flex;gap:8px;align-items:baseline}
+  .wrow{grid-template-columns:minmax(0,1fr);gap:4px}
   .cell{min-height:70px;padding:3px}
   .slot{font-size:9.5px;padding:0 3px}
   .ex{font-size:9.5px;padding:0 3px}
@@ -119,10 +153,20 @@ summary{cursor:pointer;font-weight:600}
     <div class="top"><div class="eyebrow">5to B · Medicina</div>
       <button type="button" id="themeBtn" class="theme-btn" aria-label="Cambiar a tema oscuro" title="Cambiar tema"><span id="themeIco" aria-hidden="true">☾</span> <span id="themeTxt">Oscuro</span></button></div>
     <h1>Plan de estudio hasta febrero</h1>
-    <p class="sub">Sale del calendario de 5to B en Canva. Cada día tiene dos <b>bloques</b> de estudio (media jornada, unas 3–4 h cada uno). Mientras hay clases, entre semana solo cuenta el tiempo libre que te deja el horario. Los días justo antes de cada examen van para esa materia, y lo que no entra se adelanta. Así queda la fecha en que tenés que empezar cada materia.</p>
+    <p class="sub">Sale del calendario de 5to B en Canva. Cada día tiene dos <b>bloques</b> de estudio (media jornada, unas 3–4 h cada uno). Mientras hay clases, entre semana solo cuenta el tiempo libre que te deja el horario. Los días justo antes de cada examen van para esa materia, y lo que no entra se adelanta. Tildá cada bloque que estudies: el plan reparte solo lo que te falta.</p>
   </header>
 
   <section class="strip" id="strip" aria-label="Resumen"></section>
+
+  <section class="panel">
+    <h2>Hoy</h2>
+    <div class="today-card" id="today"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Próximos 7 días</h2>
+    <div class="week" id="week"></div>
+  </section>
 
   <div class="cols">
     <section class="panel">
@@ -143,7 +187,10 @@ summary{cursor:pointer;font-weight:600}
         <label class="field" for="fer">Feriados (8/12, 25/12, 1/1)
           <select id="fer"><option value="0">Libre</option><option value="1">Medio día (1 bloque)</option><option value="2">Completo (2 bloques)</option></select>
         </label>
-        <p class="note">Los días con examen tienen un solo bloque libre. Con <b>−</b> y <b>+</b> cambiás cuántos bloques necesita cada examen. Lo que cambies queda guardado en este navegador.</p>
+        <label class="field" for="rest">Medio día libre por semana
+          <select id="rest"><option value="-1">Ninguno</option><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="0">Domingo</option></select>
+        </label>
+        <p class="note">Los días con examen tienen un solo bloque libre. Con <b>−</b> y <b>+</b> cambiás cuántos bloques necesita cada examen. El último bloque antes de cada examen es de <b>repaso</b>. Si los bloques no alcanzan, el plan usa algunos medios días libres, empezando por los más cercanos al examen. Lo que cambies queda guardado en este navegador.</p>
         <button class="linkbtn" id="reset" type="button">Volver a los valores sugeridos</button>
       </div>
       <div class="box">
@@ -163,7 +210,7 @@ summary{cursor:pointer;font-weight:600}
 
   <section class="panel">
     <h2>Calendario día por día</h2>
-    <p class="note">Recuadro con borde de color = examen. Barras de color = bloques de estudio de ese día.</p>
+    <p class="note">Recuadro con borde de color = examen. Barras de color = bloques de estudio de ese día. Borde punteado = repaso. ✓ = bloque hecho.</p>
     <div class="months" id="months"></div>
   </section>
 </div>
@@ -224,7 +271,7 @@ const KEY='plan5toB.v1';
 // Bloques libres por día de semana mientras hay clases (1=lun … 5=vie), según el horario de 5to B
 const DEF_CLS={1:1,2:2,3:1,4:1,5:2};
 const CLS_HINT={1:'Clases 8–19 h · libre de noche',2:'Farmacología 8–15 h · libre desde las 15 h (Guaraní exonerado)',3:'Clases 8–12 y 15–17 h · libre 13–15 h y de noche',4:'Clases 8–17 h · libre de noche',5:'TEHM 13–17 h · libre a la mañana y de noche'};
-const defS=()=>({on:{},bl:{},sun:2,fer:0,cls:Object.assign({},DEF_CLS),clsEnd:'2026-12-11'});
+const defS=()=>({on:{},bl:{},sun:2,fer:0,rest:0,log:{},top:{},cls:Object.assign({},DEF_CLS),clsEnd:'2026-12-11'});
 let S=defS();
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
@@ -239,22 +286,49 @@ const cvar=s=>'var(--'+s+')';
 const isOn=e=>(e.id in S.on)?S.on[e.id]:DEF_ON[e.k];
 const blocks=e=>(e.id in S.bl)?S.bl[e.id]:e.b;
 const TODAY=ymd(new Date());
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const doneOf=id=>Object.values(S.log).reduce((s,a)=>s+a.filter(x=>x===id).length,0);
+const topics=id=>S.top[id]||[];
+const OPEN=new Set();
+const isClassDay=d=>{const dw=parse(d).getDay(); return d<=S.clsEnd && dw>=1 && dw<=5;};
+// Horarios sugeridos según el horario de clases de 5to B
+const CLS_TIME={1:['20 a 23 h'],2:['15:30 a 18:30 h','19:30 a 22:30 h'],3:['19 a 22 h'],4:['18:30 a 21:30 h'],5:['8 a 11:30 h','18:30 a 21:30 h']};
+const FREE_TIME=['8:30 a 12 h','15 a 18:30 h'];
+function timeFor(d,i){const t=isClassDay(d)?CLS_TIME[parse(d).getDay()]:FREE_TIME; return t[i]||'Horario libre';}
+function baseCap(d,exDays,skip){
+  const dw=parse(d).getDay(); let c=2;
+  if(dw===0) c=Math.min(c,+S.sun);
+  if(FER.has(d)) c=Math.min(c,+S.fer);
+  if(isClassDay(d)) c=Math.min(c,+S.cls[dw]);
+  if(+S.rest>=0 && dw===+S.rest && !(skip&&skip.has(d))) c=Math.max(0,c-1);
+  if(exDays.has(d)) c=Math.min(c,1);
+  return c;
+}
 
+// Si con el medio día libre no alcanzan los bloques, se recuperan los medios días más cercanos al examen que queda corto
 function plan(){
+  const skip=new Set(); let P=alloc(skip);
+  for(let n=0;n<80 && +S.rest>=0;n++){
+    const sh=P.act.filter(e=>P.rem[e.id]>0); if(!sh.length) break;
+    const lim=sh.reduce((m,e)=>e.d>m?e.d:m,'');
+    let d=addDays(lim,-1), found=null;
+    for(;d>=TODAY;d=addDays(d,-1)){ if(parse(d).getDay()===+S.rest && !skip.has(d) && baseCap(d,P.exDays,new Set([d]))>baseCap(d,P.exDays,skip)){found=d;break;} }
+    if(!found) break;
+    skip.add(found); P=alloc(skip);
+  }
+  P.skip=skip; return P;
+}
+function alloc(skip){
   const act=EV.filter(e=>isOn(e)&&e.d>=TODAY);
   const exDays=new Set(act.flatMap(e=>e.d2?[e.d,e.d2]:[e.d]));
-  const rem={}; act.forEach(e=>rem[e.id]=blocks(e));
-  const slots={}; let cap=0;
+  const rem={}; act.forEach(e=>rem[e.id]=Math.max(0,blocks(e)-doneOf(e.id)));
+  const slots={}; let cap=0; const revUsed={};
   if(act.length){
     const last=act.reduce((m,e)=>e.d>m?e.d:m,TODAY); // la 2.ª parte (d2) se prepara con la 1.ª
     const days=[]; for(let d=TODAY; d<last; d=addDays(d,1)) days.push(d);
     for(let i=days.length-1;i>=0;i--){
-      const d=days[i]; let c=2;
-      if(parse(d).getDay()===0) c=Math.min(c,+S.sun);
-      if(FER.has(d)) c=Math.min(c,+S.fer);
-      const dw=parse(d).getDay();
-      if(d<=S.clsEnd && dw>=1 && dw<=5) c=Math.min(c,+S.cls[dw]);
-      if(exDays.has(d)) c=Math.min(c,1);
+      const d=days[i]; let c=baseCap(d,exDays,skip);
+      if(d===TODAY) c=Math.max(0,c-(S.log[TODAY]||[]).length);
       cap+=c;
       const got=[];
       for(let k=0;k<c;k++){
@@ -263,14 +337,16 @@ function plan(){
           if(e.d>d && rem[e.id]>0 && (!best || e.d<best.d || (e.d===best.d && rem[e.id]>rem[best.id]))) best=e;
         }
         if(!best) break;
-        rem[best.id]--; got.push(best.id);
+        rem[best.id]--;
+        const rev=!revUsed[best.id] && blocks(best)>=2; revUsed[best.id]=true;
+        got.push({id:best.id,rev});
       }
       slots[d]=got.reverse();
     }
   }
   const start={};
-  Object.keys(slots).sort().forEach(d=>slots[d].forEach(id=>{ if(!start[id]) start[id]=d; }));
-  return {act,slots,start,rem,cap};
+  Object.keys(slots).sort().forEach(d=>slots[d].forEach(x=>{ if(!start[x.id]) start[x.id]=d; }));
+  return {act,slots,start,rem,cap,exDays};
 }
 
 function el(tag,attrs,html){const n=document.createElement(tag); if(attrs) for(const k in attrs){ if(k==='style') n.setAttribute('style',attrs[k]); else n[k]=attrs[k]; } if(html!=null) n.innerHTML=html; return n;}
@@ -280,41 +356,79 @@ function rel(d){const n=diff(TODAY,d); if(n<=0) return 'hoy'; if(n===1) return '
 function render(){
   const P=plan();
   const byId=Object.fromEntries(EV.map(e=>[e.id,e]));
+  const exBy={}; P.act.forEach(e=>[e.d,e.d2].filter(Boolean).forEach(d=>(exBy[d]=exBy[d]||[]).push(e)));
 
   // summary strip
   const strip=document.getElementById('strip'); strip.innerHTML='';
-  const tod=(P.slots[TODAY]||[]).map(id=>byId[id].s);
-  const todU=[...new Set(tod)];
   const nextEx=P.act.slice().sort((a,b)=>a.d.localeCompare(b.d))[0];
-  const need=P.act.reduce((s,e)=>s+blocks(e),0);
+  const total=P.act.reduce((s,e)=>s+blocks(e),0);
+  const doneT=P.act.reduce((s,e)=>s+Math.min(blocks(e),doneOf(e.id)),0);
+  const need=total-doneT;
   const short=P.act.reduce((s,e)=>s+P.rem[e.id],0);
   strip.append(
-    el('div',{className:'stat'},`<span class="eyebrow">Hoy toca</span>${todU.length?`<div class="chips">${todU.map(subjChip).join('')}</div>`:`<span class="v">Descanso</span>`}<span class="d">${DIAL[parse(TODAY).getDay()]} ${parse(TODAY).getDate()} de ${MES[parse(TODAY).getMonth()]}</span>`),
     el('div',{className:'stat'},`<span class="eyebrow">Próximo examen</span>${nextEx?`<span class="v">${nextEx.n}</span><span class="d tnum">${fmt(nextEx.d)} · ${rel(nextEx.d)}</span>`:'<span class="v">Nada pendiente</span>'}`),
-    el('div',{className:'stat'},`<span class="eyebrow">Carga del plan</span><span class="v tnum">${need-short} de ${need} bloques</span><span class="d" style="${short?'color:var(--warn);font-weight:600':''}">${short?`Faltan ${short} bloques: empezá antes o bajá algún examen`:`Entra todo con ${P.cap} bloques disponibles`}</span>`)
+    el('div',{className:'stat'},`<span class="eyebrow">Tu avance</span><span class="v tnum">${doneT} de ${total} bloques hechos</span><div class="bar"><i style="width:${total?Math.round(doneT/total*100):0}%"></i></div>`),
+    el('div',{className:'stat'},`<span class="eyebrow">Lo que falta</span><span class="v tnum">${need} bloques</span><span class="d" style="${short?'color:var(--warn);font-weight:600':''}">${short?`No entran ${short} bloques: empezá antes o bajá algún examen`:`Entra todo: tenés ${P.cap} bloques disponibles${P.skip.size?`. Para que alcance se usan ${P.skip.size} de tus medios días libres`:''}`}</span>`)
   );
+
+  // hoy
+  const tdy=document.getElementById('today');
+  const tLog=S.log[TODAY]||[]; const tPlan=P.slots[TODAY]||[];
+  const dwT=parse(TODAY).getDay();
+  let th=`<div><h3>${DIAL[dwT][0].toUpperCase()+DIAL[dwT].slice(1)} ${parse(TODAY).getDate()} de ${MES[parse(TODAY).getMonth()]}</h3>${isClassDay(TODAY)?`<span class="note">${CLS_HINT[dwT]}</span>`:''}</div>`;
+  (exBy[TODAY]||[]).forEach(e=>th+=`<div class="chips"><span class="tag ex" style="--c:${cvar(e.s)}">Examen hoy: ${e.n}</span></div>`);
+  tLog.forEach((id,i)=>{const e=byId[id]; if(!e) return;
+    th+=`<label class="blk done" style="--c:${cvar(e.s)}" for="lg-${i}"><input type="checkbox" id="lg-${i}" data-unlog="${i}" checked><span class="bt"><b>${SUBJ[e.s].n}</b><span>Hecho · para ${e.n}</span></span></label>`;});
+  tPlan.forEach((x,i)=>{const e=byId[x.id]; const nt=topics(e.id).find(t=>!t.ok);
+    th+=`<label class="blk" style="--c:${cvar(e.s)}" for="pl-${i}"><input type="checkbox" id="pl-${i}" data-log="${e.id}"><span class="bt"><b>${SUBJ[e.s].n}${x.rev?' · repaso':''}</b><span>${timeFor(TODAY,tLog.length+i)} · para ${e.n} (${rel(e.d)})</span>${nt?`<span>Siguiente tema: ${esc(nt.t)}</span>`:''}</span></label>`;});
+  if(!tLog.length&&!tPlan.length) th+=`<p class="note">${baseCap(TODAY,P.exDays,P.skip)===0?'Hoy no hay bloques: descanso.':'No hay nada pendiente para hoy.'}</p>`;
+  else if(dwT===+S.rest&&!P.skip.has(TODAY)) th+=`<p class="note">Hoy tenés medio día libre.</p>`;
+  if(P.act.length) th+=`<label class="field" for="extra">Estudiaste algo más hoy
+    <select id="extra"><option value="">Anotar un bloque extra…</option>${P.act.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(e=>`<option value="${e.id}">${e.n}</option>`).join('')}</select></label>`;
+  tdy.innerHTML=th;
+
+  // próximos 7 días
+  const wk=document.getElementById('week'); wk.innerHTML='';
+  for(let i=1;i<=7;i++){
+    const d=addDays(TODAY,i); const sl=P.slots[d]||[]; const dw=parse(d).getDay();
+    let h='';
+    (exBy[d]||[]).forEach(e=>h+=`<span class="tag ex" style="--c:${cvar(e.s)}">Examen: ${e.n}</span>`);
+    sl.forEach((x,k)=>{const e=byId[x.id]; h+=`<span class="chip" style="--c:${cvar(e.s)}"><span class="dot"></span>${SUBJ[e.s].n}${x.rev?' · repaso':''}</span><span class="muted">${timeFor(d,k)}</span>`;});
+    if(!sl.length) h+=`<span class="muted">${(exBy[d]||[]).length?'Sin bloques de estudio':'Descanso'}</span>`;
+    else if(dw===+S.rest&&!P.skip.has(d)) h+=`<span class="tag">Medio día libre</span>`;
+    wk.append(el('div',{className:'wrow'},`<div class="wd tnum">${fmt(d)}${FER.has(d)?' · feriado':''}</div><div class="wi">${h}</div>`));
+  }
 
   // list
   const list=document.getElementById('list'); list.innerHTML='';
   const rows=P.act.slice().sort((a,b)=>((P.start[a.id]||a.d).localeCompare(P.start[b.id]||b.d))||a.d.localeCompare(b.d));
   if(!rows.length) list.append(el('div',{className:'row'},'<span class="note">No hay exámenes en el plan.</span>'));
   rows.forEach(e=>{
-    const st=P.start[e.id]; const r=P.rem[e.id]; const isNow=st&&st<=TODAY;
+    const st=P.start[e.id]; const r=P.rem[e.id]; const dn=doneOf(e.id); const bl=blocks(e); const isNow=st&&st<=TODAY;
+    const complete=bl>0&&dn>=bl;
     const startHtml= e.d===TODAY ? `<div class="when">Hoy</div><div class="rel">es el examen</div>`
-      : st ? `<div class="when tnum">${fmt(st)}</div><div class="rel">${isNow||r?'empezá ya':rel(st)}</div>`
+      : complete ? `<div class="when">Listo</div><div class="rel">bloques completos</div>`
+      : st ? `<div class="when tnum">${fmt(st)}</div><div class="rel">${isNow||r?(dn?'seguí hoy':'empezá ya'):rel(st)}</div>`
       : `<div class="when">—</div><div class="rel">sin bloques</div>`;
+    const tp=topics(e.id); const tpOk=tp.filter(t=>t.ok).length;
     const row=el('div',{className:'row'});
-    row.innerHTML=`<div class="start ${isNow||r?'now':''}">${startHtml}</div>
+    row.innerHTML=`<div class="start ${!complete&&(isNow||r)?'now':''}">${startHtml}</div>
       <div class="what"><span class="t">${e.n}</span><span class="m tnum">Examen ${fmt(e.d)}${e.d2?' y '+fmt(e.d2):''} · ${rel(e.d)}</span>
-        <div class="chips">${subjChip(e.s)}${r?`<span class="pill warn">Faltan ${r} bloque${r>1?'s':''}</span>`:''}</div></div>
+        <div class="chips">${subjChip(e.s)}${r?`<span class="pill warn">No entran ${r} bloque${r>1?'s':''}</span>`:''}</div>
+        <div class="prog tnum"><span>${Math.min(dn,bl)} de ${bl} bloques hechos${dn>bl?` (+${dn-bl} extra)`:''}</span><div class="bar"><i style="width:${bl?Math.min(100,Math.round(dn/bl*100)):0}%"></i></div></div></div>
       <div class="step" aria-label="Bloques para ${e.n}">
         <button type="button" data-id="${e.id}" data-d="-1" aria-label="Menos bloques">−</button>
-        <span class="n tnum"><b>${blocks(e)}</b><br>bloques</span>
+        <span class="n tnum"><b>${bl}</b><br>bloques</span>
         <button type="button" data-id="${e.id}" data-d="1" aria-label="Más bloques">+</button>
-      </div>`;
+      </div>
+      <details class="tp" data-topbox="${e.id}" ${OPEN.has(e.id)?'open':''}>
+        <summary>Temario${tp.length?` · ${tpOk} de ${tp.length} temas`:' · sin temas cargados'}</summary>
+        <div class="tl">${tp.map((t,i)=>`<div class="ti ${t.ok?'ok':''}"><label for="tp-${e.id}-${i}"><input type="checkbox" id="tp-${e.id}-${i}" data-top="${e.id}|${i}" ${t.ok?'checked':''}>${esc(t.t)}</label><button type="button" data-deltop="${e.id}|${i}" aria-label="Borrar tema">×</button></div>`).join('')}</div>
+        <textarea id="nt-${e.id}" placeholder="Escribí o pegá los temas, uno por línea" aria-label="Temas nuevos para ${e.n}"></textarea>
+        <button type="button" class="btn" data-addtop="${e.id}" style="margin-top:6px">Agregar temas</button>
+      </details>`;
     list.append(row);
   });
-
   // others
   const oth=document.getElementById('others'); oth.innerHTML='';
   GROUPS.forEach((g,gi)=>{
@@ -335,7 +449,6 @@ function render(){
   const allD=P.act.map(e=>e.d2||e.d); const lastD=allD.length?allD.sort().slice(-1)[0]:TODAY;
   let cur=parse(TODAY); cur=new Date(cur.getFullYear(),cur.getMonth(),1);
   const end=parse(lastD);
-  const exBy={}; P.act.forEach(e=>[e.d,e.d2].filter(Boolean).forEach(d=>(exBy[d]=exBy[d]||[]).push(e)));
   while(cur<=end){
     const y=cur.getFullYear(), m=cur.getMonth();
     const wrap=el('div',{className:'month'});
@@ -349,7 +462,8 @@ function render(){
       const c=el('div',{className:'cell'+(ds<TODAY?' past':'')+(ds===TODAY?' today':'')});
       let h=`<div class="num tnum"><span>${day}</span>${FER.has(ds)?'<span class="fer">Feriado</span>':''}</div>`;
       (exBy[ds]||[]).forEach(e=>h+=`<div class="ex" style="--c:${cvar(e.s)}" title="${e.n}">${e.n}</div>`);
-      (P.slots[ds]||[]).forEach(id=>{const e=byId[id]; h+=`<div class="slot" style="--c:${cvar(e.s)}" title="Estudiar para: ${e.n}">${e.s}</div>`;});
+      (S.log[ds]||[]).forEach(id=>{const e=byId[id]; if(e) h+=`<div class="slot did" style="--c:${cvar(e.s)}" title="Hecho: ${e.n}">✓ ${e.s}</div>`;});
+      (P.slots[ds]||[]).forEach(x=>{const e=byId[x.id]; h+=`<div class="slot${x.rev?' rev':''}" style="--c:${cvar(e.s)}" title="${x.rev?'Repaso':'Estudiar'} para: ${e.n}">${e.s}</div>`;});
       c.innerHTML=h; g.append(c);
     }
     sc.append(g); wrap.append(sc); months.append(wrap);
@@ -357,6 +471,7 @@ function render(){
   }
   document.getElementById('sun').value=String(S.sun);
   document.getElementById('fer').value=String(S.fer);
+  document.getElementById('rest').value=String(S.rest);
   document.getElementById('clsEnd').value=S.clsEnd;
   document.getElementById('clsDays').innerHTML=[1,2,3,4,5].map(dw=>`<label class="field" for="cls-${dw}"><span><b>${DIAL[dw][0].toUpperCase()+DIAL[dw].slice(1)}</b> · <span class="note">${CLS_HINT[dw]}</span></span>
     <select id="cls-${dw}" data-cls="${dw}">${[0,1,2].map(v=>`<option value="${v}" ${+S.cls[dw]===v?'selected':''}>${['Sin estudio','1 bloque','2 bloques'][v]}</option>`).join('')}</select></label>`).join('');
@@ -380,15 +495,24 @@ document.addEventListener('click',ev=>{
   if(b.id==='themeBtn'){const t=curTheme()==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); try{localStorage.setItem('plan5toB.theme',t);}catch(e){} paintThemeBtn(); return;}
   if(b.dataset.id){const e=EV.find(x=>x.id===b.dataset.id); S.bl[e.id]=Math.max(0,Math.min(40,blocks(e)+(+b.dataset.d))); save(); render();}
   else if(b.dataset.grp!=null){const g=GROUPS[+b.dataset.grp]; EV.filter(e=>g.k.includes(e.k)).forEach(e=>S.on[e.id]=b.dataset.v==='1'); save(); render();}
-  else if(b.id==='reset'){S=defS(); save(); render();}
+  else if(b.id==='reset'){const k=defS(); k.log=S.log; k.top=S.top; S=k; save(); render();}
+  else if(b.dataset.addtop){const id=b.dataset.addtop; const ta=document.getElementById('nt-'+id);
+    const add=ta.value.split('\n').map(t=>t.trim()).filter(Boolean).map(t=>({t,ok:false}));
+    if(add.length){S.top[id]=topics(id).concat(add); OPEN.add(id); save(); render();}}
+  else if(b.dataset.deltop){const [id,i]=b.dataset.deltop.split('|'); S.top[id].splice(+i,1); save(); render();}
 });
 document.addEventListener('change',ev=>{
   const t=ev.target;
   if(t.dataset.on){S.on[t.dataset.on]=t.checked; save(); render();}
-  else if(t.id==='sun'||t.id==='fer'){S[t.id]=+t.value; save(); render();}
+  else if(t.id==='sun'||t.id==='fer'||t.id==='rest'){S[t.id]=+t.value; save(); render();}
+  else if(t.dataset.log){(S.log[TODAY]=S.log[TODAY]||[]).push(t.dataset.log); save(); render();}
+  else if(t.dataset.unlog!=null){S.log[TODAY].splice(+t.dataset.unlog,1); if(!S.log[TODAY].length) delete S.log[TODAY]; save(); render();}
+  else if(t.id==='extra'&&t.value){(S.log[TODAY]=S.log[TODAY]||[]).push(t.value); save(); render();}
+  else if(t.dataset.top){const [id,i]=t.dataset.top.split('|'); S.top[id][+i].ok=t.checked; save(); render();}
   else if(t.dataset.cls){S.cls[t.dataset.cls]=+t.value; save(); render();}
   else if(t.id==='clsEnd' && t.value){S.clsEnd=t.value; save(); render();}
 });
+document.addEventListener('toggle',ev=>{const t=ev.target; if(t.dataset&&t.dataset.topbox){t.open?OPEN.add(t.dataset.topbox):OPEN.delete(t.dataset.topbox);}},true);
 render();
 </script>
 
