@@ -131,6 +131,12 @@ summary{cursor:pointer;font-weight:600}
 .tp textarea{font:inherit;font-size:13.5px;width:100%;min-height:64px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);resize:vertical}
 .btn{font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;align-self:flex-start}
 .btn:hover{background:var(--soft)}
+.rnd{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink);align-self:flex-start;padding:3px 10px 3px 8px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+.rnd:hover{background:var(--soft)}
+.rnd input{width:15px;height:15px;accent-color:var(--ok);margin:0}
+.done-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.done-list .chk.ok .nm{text-decoration:line-through;color:var(--muted)}
+.ex.ok,.tag.ex.ok{text-decoration:line-through;opacity:.55}
 .slot.rev{background:transparent;color:var(--ink);border:1.5px dashed var(--c);padding:0 4px}
 .slot.did{opacity:.55}
 @media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
@@ -172,6 +178,10 @@ summary{cursor:pointer;font-weight:600}
     <section class="panel">
       <h2>Cuándo empezar cada cosa</h2>
       <div class="list" id="list"></div>
+      <details id="doneBox">
+        <summary id="doneSum">Exámenes rendidos</summary>
+        <div class="done-list" id="doneList"></div>
+      </details>
       <details id="othersBox">
         <summary>Agregar otros exámenes (PEX, recuperaciones, F.C y F.S)</summary>
         <div class="others" id="others"></div>
@@ -190,7 +200,7 @@ summary{cursor:pointer;font-weight:600}
         <label class="field" for="rest">Medio día libre por semana
           <select id="rest"><option value="-1">Ninguno</option><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="0">Domingo</option></select>
         </label>
-        <p class="note">Los días con examen tienen un solo bloque libre. Con <b>−</b> y <b>+</b> cambiás cuántos bloques necesita cada examen. El último bloque antes de cada examen es de <b>repaso</b>. Si los bloques no alcanzan, el plan usa algunos medios días libres, empezando por los más cercanos al examen. Lo que cambies queda guardado en este navegador.</p>
+        <p class="note">Los días con examen tienen un solo bloque libre. Con <b>−</b> y <b>+</b> cambiás cuántos bloques necesita cada examen. El último bloque antes de cada examen es de <b>repaso</b>. Si los bloques no alcanzan, el plan usa algunos medios días libres, empezando por los más cercanos al examen. Cuando rendís un examen, tildá <b>Ya lo rendí</b>: queda tachado y sale del plan. Lo que cambies queda guardado en este navegador.</p>
         <button class="linkbtn" id="reset" type="button">Volver a los valores sugeridos</button>
       </div>
       <div class="box">
@@ -210,7 +220,7 @@ summary{cursor:pointer;font-weight:600}
 
   <section class="panel">
     <h2>Calendario día por día</h2>
-    <p class="note">Recuadro con borde de color = examen. Barras de color = bloques de estudio de ese día. Borde punteado = repaso. ✓ = bloque hecho.</p>
+    <p class="note">Recuadro con borde de color = examen. Barras de color = bloques de estudio de ese día. Borde punteado = repaso. ✓ = bloque hecho. Examen tachado = ya rendido.</p>
     <div class="months" id="months"></div>
   </section>
 </div>
@@ -271,7 +281,7 @@ const KEY='plan5toB.v1';
 // Bloques libres por día de semana mientras hay clases (1=lun … 5=vie), según el horario de 5to B
 const DEF_CLS={1:1,2:2,3:1,4:1,5:2};
 const CLS_HINT={1:'Clases 8–19 h · libre de noche',2:'Farmacología 8–15 h · libre desde las 15 h (Guaraní exonerado)',3:'Clases 8–12 y 15–17 h · libre 13–15 h y de noche',4:'Clases 8–17 h · libre de noche',5:'TEHM 13–17 h · libre a la mañana y de noche'};
-const defS=()=>({on:{},bl:{},sun:2,fer:0,rest:0,log:{},top:{},cls:Object.assign({},DEF_CLS),clsEnd:'2026-12-11'});
+const defS=()=>({on:{},bl:{},sun:2,fer:0,rest:0,log:{},top:{},rnd:{},cls:Object.assign({},DEF_CLS),clsEnd:'2026-12-11'});
 let S=defS();
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
@@ -287,6 +297,8 @@ const isOn=e=>(e.id in S.on)?S.on[e.id]:DEF_ON[e.k];
 const blocks=e=>(e.id in S.bl)?S.bl[e.id]:e.b;
 const TODAY=ymd(new Date());
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const isRnd=e=>!!S.rnd[e.id];
+const lastDay=e=>e.d2||e.d;
 const doneOf=id=>Object.values(S.log).reduce((s,a)=>s+a.filter(x=>x===id).length,0);
 const topics=id=>S.top[id]||[];
 const OPEN=new Set();
@@ -319,7 +331,7 @@ function plan(){
   P.skip=skip; return P;
 }
 function alloc(skip){
-  const act=EV.filter(e=>isOn(e)&&e.d>=TODAY);
+  const act=EV.filter(e=>isOn(e)&&!isRnd(e)&&e.d>=TODAY);
   const exDays=new Set(act.flatMap(e=>e.d2?[e.d,e.d2]:[e.d]));
   const rem={}; act.forEach(e=>rem[e.id]=Math.max(0,blocks(e)-doneOf(e.id)));
   const slots={}; let cap=0; const revUsed={};
@@ -356,7 +368,8 @@ function rel(d){const n=diff(TODAY,d); if(n<=0) return 'hoy'; if(n===1) return '
 function render(){
   const P=plan();
   const byId=Object.fromEntries(EV.map(e=>[e.id,e]));
-  const exBy={}; P.act.forEach(e=>[e.d,e.d2].filter(Boolean).forEach(d=>(exBy[d]=exBy[d]||[]).push(e)));
+  const exBy={}; EV.filter(e=>isOn(e)&&(P.act.includes(e)||isRnd(e)||lastDay(e)<TODAY)).forEach(e=>[e.d,e.d2].filter(Boolean).forEach(d=>(exBy[d]=exBy[d]||[]).push(e)));
+  const exTag=(e,pre)=>`<span class="tag ex${isRnd(e)?' ok':''}" style="--c:${cvar(e.s)}">${isRnd(e)?'✓ ':''}${pre}${e.n}</span>`;
 
   // summary strip
   const strip=document.getElementById('strip'); strip.innerHTML='';
@@ -376,7 +389,7 @@ function render(){
   const tLog=S.log[TODAY]||[]; const tPlan=P.slots[TODAY]||[];
   const dwT=parse(TODAY).getDay();
   let th=`<div><h3>${DIAL[dwT][0].toUpperCase()+DIAL[dwT].slice(1)} ${parse(TODAY).getDate()} de ${MES[parse(TODAY).getMonth()]}</h3>${isClassDay(TODAY)?`<span class="note">${CLS_HINT[dwT]}</span>`:''}</div>`;
-  (exBy[TODAY]||[]).forEach(e=>th+=`<div class="chips"><span class="tag ex" style="--c:${cvar(e.s)}">Examen hoy: ${e.n}</span></div>`);
+  (exBy[TODAY]||[]).forEach(e=>th+=`<div class="chips">${exTag(e,'Examen hoy: ')}${isRnd(e)?'':`<label class="rnd" for="rt-${e.id}"><input type="checkbox" id="rt-${e.id}" data-rnd="${e.id}">Ya lo rendí</label>`}</div>`);
   tLog.forEach((id,i)=>{const e=byId[id]; if(!e) return;
     th+=`<label class="blk done" style="--c:${cvar(e.s)}" for="lg-${i}"><input type="checkbox" id="lg-${i}" data-unlog="${i}" checked><span class="bt"><b>${SUBJ[e.s].n}</b><span>Hecho · para ${e.n}</span></span></label>`;});
   tPlan.forEach((x,i)=>{const e=byId[x.id]; const nt=topics(e.id).find(t=>!t.ok);
@@ -392,7 +405,7 @@ function render(){
   for(let i=1;i<=7;i++){
     const d=addDays(TODAY,i); const sl=P.slots[d]||[]; const dw=parse(d).getDay();
     let h='';
-    (exBy[d]||[]).forEach(e=>h+=`<span class="tag ex" style="--c:${cvar(e.s)}">Examen: ${e.n}</span>`);
+    (exBy[d]||[]).forEach(e=>h+=exTag(e,'Examen: '));
     sl.forEach((x,k)=>{const e=byId[x.id]; h+=`<span class="chip" style="--c:${cvar(e.s)}"><span class="dot"></span>${SUBJ[e.s].n}${x.rev?' · repaso':''}</span><span class="muted">${timeFor(d,k)}</span>`;});
     if(!sl.length) h+=`<span class="muted">${(exBy[d]||[]).length?'Sin bloques de estudio':'Descanso'}</span>`;
     else if(dw===+S.rest&&!P.skip.has(d)) h+=`<span class="tag">Medio día libre</span>`;
@@ -414,6 +427,7 @@ function render(){
     const row=el('div',{className:'row'});
     row.innerHTML=`<div class="start ${!complete&&(isNow||r)?'now':''}">${startHtml}</div>
       <div class="what"><span class="t">${e.n}</span><span class="m tnum">Examen ${fmt(e.d)}${e.d2?' y '+fmt(e.d2):''} · ${rel(e.d)}</span>
+        <label class="rnd" for="rd-${e.id}"><input type="checkbox" id="rd-${e.id}" data-rnd="${e.id}">Ya lo rendí</label>
         <div class="chips">${subjChip(e.s)}${r?`<span class="pill warn">No entran ${r} bloque${r>1?'s':''}</span>`:''}</div>
         <div class="prog tnum"><span>${Math.min(dn,bl)} de ${bl} bloques hechos${dn>bl?` (+${dn-bl} extra)`:''}</span><div class="bar"><i style="width:${bl?Math.min(100,Math.round(dn/bl*100)):0}%"></i></div></div></div>
       <div class="step" aria-label="Bloques para ${e.n}">
@@ -429,6 +443,14 @@ function render(){
       </details>`;
     list.append(row);
   });
+  // rendidos y pasados
+  const past=EV.filter(e=>isOn(e)&&(isRnd(e)||e.d<TODAY)).sort((a,b)=>a.d.localeCompare(b.d));
+  const nR=past.filter(isRnd).length;
+  document.getElementById('doneSum').textContent=`Exámenes rendidos · ${nR} de ${past.length}`;
+  document.getElementById('doneBox').hidden=!past.length;
+  document.getElementById('doneList').innerHTML=(past.length&&nR<past.length?'<p class="note">Tildá los que ya rendiste.</p>':'')+
+    past.map(e=>`<label class="chk${isRnd(e)?' ok':''}" for="rp-${e.id}"><input type="checkbox" id="rp-${e.id}" data-rnd="${e.id}" ${isRnd(e)?'checked':''}><span class="dot" style="--c:${cvar(e.s)}"></span><span class="nm">${e.n}</span><span class="dd tnum">${fmt(e.d)}</span></label>`).join('');
+
   // others
   const oth=document.getElementById('others'); oth.innerHTML='';
   GROUPS.forEach((g,gi)=>{
@@ -461,7 +483,7 @@ function render(){
       const ds=y+'-'+pad(m+1)+'-'+pad(day);
       const c=el('div',{className:'cell'+(ds<TODAY?' past':'')+(ds===TODAY?' today':'')});
       let h=`<div class="num tnum"><span>${day}</span>${FER.has(ds)?'<span class="fer">Feriado</span>':''}</div>`;
-      (exBy[ds]||[]).forEach(e=>h+=`<div class="ex" style="--c:${cvar(e.s)}" title="${e.n}">${e.n}</div>`);
+      (exBy[ds]||[]).forEach(e=>h+=`<div class="ex${isRnd(e)?' ok':''}" style="--c:${cvar(e.s)}" title="${e.n}${isRnd(e)?' · rendido':''}">${isRnd(e)?'✓ ':''}${e.n}</div>`);
       (S.log[ds]||[]).forEach(id=>{const e=byId[id]; if(e) h+=`<div class="slot did" style="--c:${cvar(e.s)}" title="Hecho: ${e.n}">✓ ${e.s}</div>`;});
       (P.slots[ds]||[]).forEach(x=>{const e=byId[x.id]; h+=`<div class="slot${x.rev?' rev':''}" style="--c:${cvar(e.s)}" title="${x.rev?'Repaso':'Estudiar'} para: ${e.n}">${e.s}</div>`;});
       c.innerHTML=h; g.append(c);
@@ -495,7 +517,7 @@ document.addEventListener('click',ev=>{
   if(b.id==='themeBtn'){const t=curTheme()==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); try{localStorage.setItem('plan5toB.theme',t);}catch(e){} paintThemeBtn(); return;}
   if(b.dataset.id){const e=EV.find(x=>x.id===b.dataset.id); S.bl[e.id]=Math.max(0,Math.min(40,blocks(e)+(+b.dataset.d))); save(); render();}
   else if(b.dataset.grp!=null){const g=GROUPS[+b.dataset.grp]; EV.filter(e=>g.k.includes(e.k)).forEach(e=>S.on[e.id]=b.dataset.v==='1'); save(); render();}
-  else if(b.id==='reset'){const k=defS(); k.log=S.log; k.top=S.top; S=k; save(); render();}
+  else if(b.id==='reset'){const k=defS(); k.log=S.log; k.top=S.top; k.rnd=S.rnd; S=k; save(); render();}
   else if(b.dataset.addtop){const id=b.dataset.addtop; const ta=document.getElementById('nt-'+id);
     const add=ta.value.split('\n').map(t=>t.trim()).filter(Boolean).map(t=>({t,ok:false}));
     if(add.length){S.top[id]=topics(id).concat(add); OPEN.add(id); save(); render();}}
@@ -503,7 +525,8 @@ document.addEventListener('click',ev=>{
 });
 document.addEventListener('change',ev=>{
   const t=ev.target;
-  if(t.dataset.on){S.on[t.dataset.on]=t.checked; save(); render();}
+  if(t.dataset.rnd){if(t.checked) S.rnd[t.dataset.rnd]=true; else delete S.rnd[t.dataset.rnd]; save(); render();}
+  else if(t.dataset.on){S.on[t.dataset.on]=t.checked; save(); render();}
   else if(t.id==='sun'||t.id==='fer'||t.id==='rest'){S[t.id]=+t.value; save(); render();}
   else if(t.dataset.log){(S.log[TODAY]=S.log[TODAY]||[]).push(t.dataset.log); save(); render();}
   else if(t.dataset.unlog!=null){S.log[TODAY].splice(+t.dataset.unlog,1); if(!S.log[TODAY].length) delete S.log[TODAY]; save(); render();}
