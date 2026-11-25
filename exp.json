@@ -1,0 +1,42 @@
+{
+ "app": "plan5toB",
+ "v": 1,
+ "fecha": "2026-11-25T10:42:03.864Z",
+ "theme": "dark",
+ "data": {
+  "on": {},
+  "bl": {},
+  "sun": 2,
+  "fer": 0,
+  "rest": 6,
+  "log": {
+   "2026-11-25": [
+    "mi-fo-t",
+    "mi-ent"
+   ]
+  },
+  "top": {
+   "bio-fo": [
+    {
+     "t": "Ácido–base “ñandú”",
+     "ok": false
+    },
+    {
+     "t": "Shock",
+     "ok": false
+    }
+   ]
+  },
+  "rnd": {
+   "mi-fo-t": true
+  },
+  "cls": {
+   "1": 1,
+   "2": 2,
+   "3": 1,
+   "4": 1,
+   "5": 2
+  },
+  "clsEnd": "2026-12-11"
+ }
+}

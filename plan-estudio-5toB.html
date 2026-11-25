@@ -137,6 +137,10 @@ summary{cursor:pointer;font-weight:600}
 .done-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .done-list .chk.ok .nm{text-decoration:line-through;color:var(--muted)}
 .ex.ok,.tag.ex.ok{text-decoration:line-through;opacity:.55}
+.xrow{display:flex;flex-wrap:wrap;gap:8px}
+.xmsg{font-size:13px;margin:0;font-weight:600}
+.xmsg.ok{color:var(--ok)} .xmsg.err{color:var(--warn)}
+#xCode{font:inherit;font-size:12px;width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);resize:vertical;word-break:break-all}
 .slot.rev{background:transparent;color:var(--ink);border:1.5px dashed var(--c);padding:0 4px}
 .slot.did{opacity:.55}
 @media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
@@ -210,6 +214,26 @@ summary{cursor:pointer;font-weight:600}
         </label>
         <p class="note">Hasta esa fecha, de lunes a viernes se cuenta solo el tiempo libre que te deja el horario. Los sábados quedan completos.</p>
         <div id="clsDays" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+      <div class="box" id="xferBox">
+        <h3>Pasar a otro dispositivo</h3>
+        <p class="note">Tu avance se guarda solo en este navegador. Para usarlo en otro celular o computadora, exportalo acá e importalo allá.</p>
+        <span class="eyebrow">Exportar</span>
+        <div class="xrow">
+          <button type="button" class="btn" id="xDown">Descargar archivo</button>
+          <button type="button" class="btn" id="xCopy">Copiar código</button>
+        </div>
+        <span class="eyebrow">Importar</span>
+        <div class="xrow">
+          <button type="button" class="btn" id="xPick">Elegir archivo</button>
+          <input type="file" id="xFile" accept=".json,application/json,text/plain" hidden>
+        </div>
+        <label class="field" for="xCode">O pegá el código copiado
+          <textarea id="xCode" placeholder="PLAN5TOB:…" spellcheck="false"></textarea>
+        </label>
+        <button type="button" class="btn" id="xImport">Importar código</button>
+        <p class="xmsg" id="xMsg" role="status" aria-live="polite"></p>
+        <p class="note">Importar reemplaza los datos de este dispositivo por los del archivo o código.</p>
       </div>
       <div class="box">
         <h3>Materias</h3>
@@ -285,6 +309,52 @@ const defS=()=>({on:{},bl:{},sun:2,fer:0,rest:0,log:{},top:{},rnd:{},cls:Object.
 let S=defS();
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+// Exportar / importar entre dispositivos
+const isObj=v=>v&&typeof v==='object'&&!Array.isArray(v);
+function packData(){
+  let theme=null; try{theme=localStorage.getItem('plan5toB.theme');}catch(e){}
+  return {app:'plan5toB',v:1,fecha:new Date().toISOString(),theme,data:S};
+}
+const toCode=o=>'PLAN5TOB:'+btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+function readPack(txt){
+  txt=String(txt||'').trim();
+  if(!txt) throw new Error('vacío');
+  let o;
+  if(/^PLAN5TOB:/i.test(txt)) o=JSON.parse(decodeURIComponent(escape(atob(txt.slice(9).replace(/\s+/g,'')))));
+  else o=JSON.parse(txt);
+  if(!isObj(o)||o.app!=='plan5toB'||!isObj(o.data)) throw new Error('formato');
+  const d=o.data, n=defS();
+  for(const k of ['on','bl','log','top','rnd','cls']) if(isObj(d[k])) n[k]=k==='cls'?Object.assign(n.cls,d[k]):d[k];
+  for(const k of ['sun','fer','rest']) if(typeof d[k]==='number') n[k]=d[k];
+  if(typeof d.clsEnd==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d.clsEnd)) n.clsEnd=d.clsEnd;
+  for(const id in n.log) if(!Array.isArray(n.log[id])) delete n.log[id];
+  for(const id in n.top) n.top[id]=Array.isArray(n.top[id])?n.top[id].filter(t=>isObj(t)&&typeof t.t==='string').map(t=>({t:t.t,ok:!!t.ok})):[];
+  return {S:n,theme:(o.theme==='dark'||o.theme==='light')?o.theme:null,fecha:o.fecha};
+}
+const plu=(n,a,b)=>n+' '+(n===1?a:b);
+function xMsg(t,ok){const m=document.getElementById('xMsg'); m.textContent=t; m.className='xmsg '+(ok?'ok':'err');}
+function applyImport(txt){
+  let r; try{r=readPack(txt);}catch(e){xMsg('No se pudo leer: revisá que sea el archivo o el código completo que exportaste.',false); return;}
+  const nB=Object.values(r.S.log).reduce((s,a)=>s+a.length,0), nR=Object.keys(r.S.rnd).length, nT=Object.values(r.S.top).reduce((s,a)=>s+a.length,0);
+  let when=''; try{const f=new Date(r.fecha); if(!isNaN(f)) when=` (exportado el ${f.getDate()}/${f.getMonth()+1} a las ${pad(f.getHours())}:${pad(f.getMinutes())})`;}catch(e){}
+  if(!confirm(`Vas a reemplazar los datos de este dispositivo${when}:\n• ${plu(nB,'bloque hecho','bloques hechos')}\n• ${plu(nR,'examen rendido','exámenes rendidos')}\n• ${plu(nT,'tema cargado','temas cargados')}\n\n¿Continuar?`)) return;
+  S=r.S; save();
+  if(r.theme){document.documentElement.setAttribute('data-theme',r.theme); try{localStorage.setItem('plan5toB.theme',r.theme);}catch(e){} paintThemeBtn();}
+  document.getElementById('xCode').value='';
+  render(); xMsg(`Listo: se importó tu avance (${plu(nB,'bloque hecho','bloques hechos')}, ${plu(nR,'examen rendido','exámenes rendidos')}, ${plu(nT,'tema','temas')}).`,true);
+}
+async function copyCode(){
+  const code=toCode(packData()); const ta=document.getElementById('xCode');
+  try{await navigator.clipboard.writeText(code); xMsg('Código copiado. Pegalo en el otro dispositivo (por WhatsApp, mail o notas) y tocá «Importar código».',true);}
+  catch(e){ta.value=code; ta.focus(); ta.select(); xMsg('No se pudo copiar solo: el código quedó en el recuadro, seleccionalo y copialo a mano.',false);}
+}
+function downloadFile(){
+  const blob=new Blob([JSON.stringify(packData(),null,1)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='plan-5toB-'+TODAY+'.json';
+  document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  xMsg('Archivo descargado. Pasalo al otro dispositivo y usá «Elegir archivo».',true);
+}
 
 const pad=n=>String(n).padStart(2,'0');
 const ymd=dt=>dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate());
@@ -514,6 +584,10 @@ mq.addEventListener&&mq.addEventListener('change',paintThemeBtn);
 
 document.addEventListener('click',ev=>{
   const b=ev.target.closest('button'); if(!b) return;
+  if(b.id==='xDown'){downloadFile(); return;}
+  if(b.id==='xCopy'){copyCode(); return;}
+  if(b.id==='xPick'){document.getElementById('xFile').click(); return;}
+  if(b.id==='xImport'){applyImport(document.getElementById('xCode').value); return;}
   if(b.id==='themeBtn'){const t=curTheme()==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); try{localStorage.setItem('plan5toB.theme',t);}catch(e){} paintThemeBtn(); return;}
   if(b.dataset.id){const e=EV.find(x=>x.id===b.dataset.id); S.bl[e.id]=Math.max(0,Math.min(40,blocks(e)+(+b.dataset.d))); save(); render();}
   else if(b.dataset.grp!=null){const g=GROUPS[+b.dataset.grp]; EV.filter(e=>g.k.includes(e.k)).forEach(e=>S.on[e.id]=b.dataset.v==='1'); save(); render();}
@@ -525,6 +599,7 @@ document.addEventListener('click',ev=>{
 });
 document.addEventListener('change',ev=>{
   const t=ev.target;
+  if(t.id==='xFile'){const f=t.files&&t.files[0]; if(f){const fr=new FileReader(); fr.onload=()=>applyImport(fr.result); fr.onerror=()=>xMsg('No se pudo abrir el archivo.',false); fr.readAsText(f);} t.value=''; return;}
   if(t.dataset.rnd){if(t.checked) S.rnd[t.dataset.rnd]=true; else delete S.rnd[t.dataset.rnd]; save(); render();}
   else if(t.dataset.on){S.on[t.dataset.on]=t.checked; save(); render();}
   else if(t.id==='sun'||t.id==='fer'||t.id==='rest'){S[t.id]=+t.value; save(); render();}
